@@ -1,6 +1,6 @@
 // frontend/src/components/layout/Header.jsx
 import React from 'react';
-// import { useSocket } from '../../context/SocketContext.jsx'; // This line is not needed
+import { useSocket } from '../../context/SocketContext';
 import ThemeToggle from '../ui/ThemeToggle';
 import { Menu, Users, Pin, Settings } from 'lucide-react';
 
@@ -58,4 +58,3 @@ const Header = ({ onToggleSidebar, onTogglePinned }) => {
 };
 
 export default Header;
-

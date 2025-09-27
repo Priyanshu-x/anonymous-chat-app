@@ -84,6 +84,13 @@ export const SocketProvider = ({ children }) => {
     };
   }, []);
 
+  // Function to join chat
+  const joinChat = ({ username, avatar }) => {
+    if (socket) {
+      socket.emit('join-chat', { username, avatar });
+    }
+  };
+
   const value = {
     socket,
     connected,
@@ -95,6 +102,7 @@ export const SocketProvider = ({ children }) => {
     setMessages,
     setPinnedMessages,
     setUser,
+    joinChat,
   };
 
   return (
