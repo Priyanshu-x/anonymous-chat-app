@@ -1,23 +1,88 @@
-import React from 'react';
+// frontend/src/components/chat/MessageList.jsx
+import React, { useRef, useEffect } from 'react';
+import { useSocket } from '../../context/SocketContext';
 import MessageBubble from './MessageBubble';
 
-const MessageList = ({ messages, currentUserId, onReact }) => {
-	return (
-		<div className="overflow-y-auto h-full p-4 flex flex-col-reverse">
-			{messages && messages.length > 0 ? (
-				messages.map(msg => (
-					<MessageBubble
-						key={msg._id}
-						message={msg}
-						isOwn={msg.user?._id === currentUserId}
-						onReact={onReact}
-					/>
-				))
-			) : (
-				<div className="text-gray-500 text-center">No messages yet.</div>
-			)}
+const MessageList = () => {
+  const { messages, typingUsers, user } = useSocket();
+  const messagesEndRef = useRef(null);
+  const containerRef = useRef(null);
+
+  const scrollToBottom = () => {
+	messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+	scrollToBottom();
+  }, [messages]);
+
+  return (
+	<div 
+	  ref={containerRef}
+	  className="h-full overflow-y-auto custom-scrollbar p-4 space-y-4"
+	>
+	  {messages.length === 0 ? (
+		<div className="flex items-center justify-center h-full">
+		  <div className="text-center">
+			<div className="text-6xl mb-4">💬</div>
+			<h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+			  Welcome to Anonymous Chat!
+			</h3>
+			<p className="text-gray-500 dark:text-gray-400">
+			  Start a conversation by sending your first message
+			</p>
+		  </div>
 		</div>
-	);
+	  ) : (
+		<>
+		  {messages.map((message, index) => {
+			const isOwnMessage = user && message.user._id === user.id;
+			const showAvatar = index === 0 || 
+			  messages[index - 1].user._id !== message.user._id;
+			
+			return (
+			  <MessageBubble
+				key={message._id}
+				message={message}
+				isOwnMessage={isOwnMessage}
+				showAvatar={showAvatar}
+			  />
+			);
+		  })}
+
+		  {/* Typing Indicators */}
+		  {typingUsers.length > 0 && (
+			<div className="flex items-center space-x-3 px-2 animate-fade-in">
+			  <div className="flex -space-x-2">
+				{typingUsers.slice(0, 3).map((user, index) => (
+				  <img
+					key={index}
+					src={user.avatar}
+					alt={user.username}
+					className="w-6 h-6 rounded-full border-2 border-white dark:border-gray-800"
+				  />
+				))}
+			  </div>
+			  <div className="bg-gray-200 dark:bg-gray-700 rounded-full px-3 py-2">
+				<div className="typing-indicator">
+				  <div className="typing-dot"></div>
+				  <div className="typing-dot"></div>
+				  <div className="typing-dot"></div>
+				</div>
+			  </div>
+			  <span className="text-xs text-gray-500 dark:text-gray-400">
+				{typingUsers.length === 1 
+				  ? `${typingUsers[0].username} is typing...`
+				  : `${typingUsers.length} people are typing...`
+				}
+			  </span>
+			</div>
+		  )}
+		</>
+	  )}
+	  <div ref={messagesEndRef} />
+	</div>
+  );
 };
 
 export default MessageList;

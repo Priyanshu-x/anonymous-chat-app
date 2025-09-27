@@ -1,46 +1,33 @@
-import React, { useState } from 'react';
+// frontend/src/components/chat/EmojiReactions.jsx
+import React from 'react';
 
-const EMOJIS = ['😀', '😂', '😍', '😢', '👍', '🔥', '🎉', '😮', '🙏', '😡'];
+const EmojiReactions = ({ reactions, onReactionClick }) => {
+  if (!reactions || reactions.length === 0) return null;
 
-const EmojiReactions = ({ onReact, reactions = {}, messageId }) => {
-	const [showPicker, setShowPicker] = useState(false);
+  // Group reactions by emoji
+  const groupedReactions = reactions.reduce((acc, reaction) => {
+    if (!acc[reaction.emoji]) {
+      acc[reaction.emoji] = [];
+    }
+    acc[reaction.emoji].push(reaction);
+    return acc;
+  }, {});
 
-	const handleEmojiClick = (emoji) => {
-		setShowPicker(false);
-		if (onReact) onReact(messageId, emoji);
-	};
-
-	return (
-		<div className="relative inline-block">
-			<button
-				className="px-2 py-1 text-xl bg-gray-100 rounded hover:bg-gray-200"
-				onClick={() => setShowPicker(!showPicker)}
-				title="Add Reaction"
-			>
-				😊
-			</button>
-			{showPicker && (
-				<div className="absolute z-10 bg-white border rounded shadow p-2 mt-2 flex flex-wrap w-48">
-					{EMOJIS.map(emoji => (
-						<button
-							key={emoji}
-							className="text-2xl m-1 hover:bg-gray-100 rounded"
-							onClick={() => handleEmojiClick(emoji)}
-						>
-							{emoji}
-						</button>
-					))}
-				</div>
-			)}
-			<div className="flex space-x-1 mt-2">
-				{Object.entries(reactions).map(([emoji, count]) => (
-					<span key={emoji} className="text-xl bg-gray-200 rounded px-2 py-1">
-						{emoji} {count}
-					</span>
-				))}
-			</div>
-		</div>
-	);
+  return (
+    <div className="flex flex-wrap gap-1 mt-2">
+      {Object.entries(groupedReactions).map(([emoji, reactionList]) => (
+        <button
+          key={emoji}
+          onClick={() => onReactionClick(emoji)}
+          className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full px-2 py-1 text-xs transition-colors"
+          title={`${reactionList.map(r => r.user.username).join(', ')} reacted with ${emoji}`}
+        >
+          <span>{emoji}</span>
+          <span className="text-gray-600 dark:text-gray-400">{reactionList.length}</span>
+        </button>
+      ))}
+    </div>
+  );
 };
 
 export default EmojiReactions;

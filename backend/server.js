@@ -34,7 +34,7 @@ const AdminUser = require('./models/AdminUser');
 
 // Routes
 app.use('/api/chat', require('./routes/chat'));
-app.use('/api/admin', require('./routes/admin')(io)); // Pass io to admin routes
+app.use('/api/admin', require('./routes/admin'));
 app.use('/api/user', require('./routes/user'));
 
 // Socket.io connection handling
@@ -52,6 +52,7 @@ io.on('connection', (socket) => {
         avatar: userData.avatar,
         joinedAt: new Date()
       });
+      
       await user.save();
       activeUsers.set(socket.id, user);
 
@@ -68,6 +69,7 @@ io.on('connection', (socket) => {
         avatar: u.avatar,
         id: u._id
       }));
+      
       io.emit('online-users', onlineUsers);
 
       // Send recent messages
@@ -75,6 +77,7 @@ io.on('connection', (socket) => {
         .sort({ createdAt: -1 })
         .limit(50)
         .populate('user', 'username avatar');
+      
       socket.emit('recent-messages', recentMessages.reverse());
     } catch (error) {
       console.error('Error handling user join:', error);
@@ -127,7 +130,7 @@ io.on('connection', (socket) => {
       const message = await Message.findById(messageId);
       if (!message) return;
 
-      const existingReaction = message.reactions.find(r =>
+      const existingReaction = message.reactions.find(r => 
         r.emoji === emoji && r.user.toString() === user._id.toString()
       );
 
@@ -179,6 +182,7 @@ io.on('connection', (socket) => {
       if (user) {
         await User.findByIdAndDelete(user._id);
         activeUsers.delete(socket.id);
+        
         socket.broadcast.emit('user-left', {
           username: user.username,
           id: user._id
@@ -189,6 +193,7 @@ io.on('connection', (socket) => {
           avatar: u.avatar,
           id: u._id
         }));
+        
         io.emit('online-users', onlineUsers);
       }
     } catch (error) {
