@@ -1,12 +1,11 @@
-// frontend/src/components/chat/MessageInput.jsx
+// frontend/src/components/chat/MessageInput.jsx - WORKING VERSION
 import React, { useState, useRef, useEffect } from 'react';
-import { useSocket } from '../../context/SocketContext.jsx';
-import StickerPicker from './StickerPicker';
-import { Send, Image, Mic, MicOff, Smile, Paperclip, X } from 'lucide-react';
+import { useSocket } from '../../context/SocketContext';
+import { Send, Image, Mic, MicOff, Smile } from 'lucide-react';
 import axios from 'axios';
 
 const MessageInput = () => {
-  const { sendMessage, startTyping, stopTyping } = useSocket();
+  const { sendMessage, startTyping, stopTyping, user } = useSocket();
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
@@ -48,7 +47,7 @@ const MessageInput = () => {
   };
 
   const handleSendMessage = async () => {
-    if ((!message.trim() && !selectedFile) || isUploading) return;
+    if ((!message.trim() && !selectedFile) || isUploading || !user) return;
 
     let messageData = {
       content: message.trim(),
@@ -82,6 +81,7 @@ const MessageInput = () => {
       }
     }
 
+    console.log('Sending message:', messageData);
     sendMessage(messageData);
     setMessage('');
     setSelectedFile(null);
@@ -155,24 +155,43 @@ const MessageInput = () => {
     }
   };
 
-  const handleStickerSelect = (sticker) => {
+  const handleStickerSelect = (emoji) => {
     sendMessage({
       type: 'sticker',
-      fileUrl: sticker.url,
-      content: sticker.name
+      content: emoji
     });
     setShowStickers(false);
   };
+
+  const emojis = ['😀', '😂', '🥰', '😎', '🤔', '😴', '🐶', '🐱', '🦄', '🐼', '🍕', '🍔', '🍰', '🍎'];
+
+  if (!user) {
+    return (
+      <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+        <div className="text-center text-gray-500 dark:text-gray-400">
+          Please join the chat to send messages
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">
       {/* Sticker Picker */}
       {showStickers && (
-        <div className="absolute bottom-full mb-2 left-4 right-4">
-          <StickerPicker 
-            onSelect={handleStickerSelect}
-            onClose={() => setShowStickers(false)}
-          />
+        <div className="absolute bottom-full mb-2 left-4 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Stickers</h3>
+          <div className="grid grid-cols-8 gap-2">
+            {emojis.map((emoji, index) => (
+              <button
+                key={index}
+                onClick={() => handleStickerSelect(emoji)}
+                className="text-2xl hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-2 transition-colors"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -182,11 +201,7 @@ const MessageInput = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {filePreview ? (
-                <img 
-                  src={filePreview} 
-                  alt="Preview" 
-                  className="w-12 h-12 object-cover rounded"
-                />
+                <img src={filePreview} alt="Preview" className="w-12 h-12 object-cover rounded" />
               ) : (
                 <div className="w-12 h-12 bg-blue-500 rounded flex items-center justify-center">
                   <Mic className="h-6 w-6 text-white" />
@@ -205,7 +220,7 @@ const MessageInput = () => {
               onClick={removeFile}
               className="text-gray-400 hover:text-red-500 transition-colors"
             >
-              <X className="h-4 w-4" />
+              ✕
             </button>
           </div>
         </div>
@@ -286,7 +301,7 @@ const MessageInput = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,audio/*"
         onChange={handleFileSelect}
         className="hidden"
       />

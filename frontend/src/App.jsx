@@ -1,4 +1,3 @@
-// frontend/src/App.jsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { SocketProvider } from './context/SocketContext';
@@ -6,7 +5,6 @@ import { ThemeProvider } from './context/ThemeContext';
 import ChatRoom from './components/chat/ChatRoom';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
-import './index.css';
 
 function App() {
   return (

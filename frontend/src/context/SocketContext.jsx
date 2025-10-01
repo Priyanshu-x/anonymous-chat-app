@@ -1,4 +1,3 @@
-// frontend/src/context/SocketContext.jsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
@@ -18,76 +17,111 @@ export const SocketProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
-  const [pinnedMessages, setPinnedMessages] = useState([]);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:5000');
+    console.log('Initializing socket connection...');
+    const newSocket = io('http://localhost:5000', {
+      transports: ['websocket', 'polling']
+    });
+
+    newSocket.on('user-info', (userInfo) => {
+      console.log('ℹ️ Received user info:', userInfo);
+      setUser(userInfo);
+    });
+
     setSocket(newSocket);
 
-    // Connection events
     newSocket.on('connect', () => {
+      console.log('✅ Connected to server');
       setConnected(true);
-      console.log('Connected to server');
     });
 
     newSocket.on('disconnect', () => {
+      console.log('❌ Disconnected from server');
       setConnected(false);
-      console.log('Disconnected from server');
     });
 
-    // Message events
     newSocket.on('message-received', (message) => {
+      console.log('📨 New message:', message);
       setMessages(prev => [...prev, message]);
     });
 
     newSocket.on('recent-messages', (recentMessages) => {
+      console.log('📚 Loaded recent messages:', recentMessages.length);
       setMessages(recentMessages);
     });
 
-    newSocket.on('message-deleted', ({ messageId }) => {
-      setMessages(prev => prev.filter(msg => msg._id !== messageId));
-    });
-
-    newSocket.on('message-pin-updated', ({ messageId, isPinned }) => {
-      setMessages(prev => prev.map(msg => 
-        msg._id === messageId ? { ...msg, isPinned } : msg
-      ));
-      
-      if (isPinned) {
-        const message = messages.find(msg => msg._id === messageId);
-        if (message) {
-          setPinnedMessages(prev => [...prev, message]);
-        }
-      } else {
-        setPinnedMessages(prev => prev.filter(msg => msg._id !== messageId));
-      }
-    });
-
-    // Online users
     newSocket.on('online-users', (users) => {
+      console.log('👥 Online users:', users.length);
       setOnlineUsers(users);
     });
 
-    // Typing users
-    newSocket.on('typing-users', (users) => {
-      setTypingUsers(users);
+    newSocket.on('user-joined', (user) => {
+      console.log('👋 User joined:', user.username);
+      setOnlineUsers(prev => [...prev, user]);
     });
 
-    // User info
-    newSocket.on('user-info', (userInfo) => {
-      setUser(userInfo);
+    newSocket.on('user-left', ({ id }) => {
+      console.log('👋 User left');
+      setOnlineUsers(prev => prev.filter(user => user.id !== id));
+    });
+
+    newSocket.on('reaction-updated', ({ messageId, reactions }) => {
+      setMessages(prev => prev.map(msg => 
+        msg._id === messageId ? { ...msg, reactions } : msg
+      ));
+    });
+
+    newSocket.on('user-typing', (user) => {
+      setTypingUsers(prev => {
+        if (!prev.find(u => u.username === user.username)) {
+          return [...prev, user];
+        }
+        return prev;
+      });
+    });
+
+    newSocket.on('user-stop-typing', ({ username }) => {
+      setTypingUsers(prev => prev.filter(user => user.username !== username));
     });
 
     return () => {
-      newSocket.disconnect();
+      console.log('Closing socket connection');
+      newSocket.close();
     };
   }, []);
 
-  // Function to join chat
-  const joinChat = ({ username, avatar }) => {
-    if (socket) {
-      socket.emit('join-chat', { username, avatar });
+  const joinChat = (userData) => {
+    console.log('🚀 Joining chat with:', userData);
+    if (socket && connected) {
+      socket.emit('join-chat', userData);
+      // user will be set when 'user-info' is received from backend
+    }
+  };
+
+  const sendMessage = (messageData) => {
+    console.log('📤 Sending message:', messageData);
+    if (socket && connected) {
+      socket.emit('new-message', messageData);
+    }
+  };
+
+  const toggleReaction = (messageId, emoji) => {
+    if (socket && connected) {
+      socket.emit('toggle-reaction', { messageId, emoji });
+    }
+  };
+
+  const startTyping = () => {
+    if (socket && connected) {
+      socket.emit('typing-start');
+    }
+  };
+
+  const stopTyping = () => {
+    if (socket && connected) {
+      socket.emit('typing-stop');
     }
   };
 
@@ -97,12 +131,12 @@ export const SocketProvider = ({ children }) => {
     messages,
     onlineUsers,
     typingUsers,
-    pinnedMessages,
     user,
-    setMessages,
-    setPinnedMessages,
-    setUser,
     joinChat,
+    sendMessage,
+    toggleReaction,
+    startTyping,
+    stopTyping
   };
 
   return (

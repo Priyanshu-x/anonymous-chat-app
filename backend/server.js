@@ -50,7 +50,8 @@ io.on('connection', (socket) => {
         socketId: socket.id,
         username: userData.username,
         avatar: userData.avatar,
-        joinedAt: new Date()
+        joinedAt: new Date(),
+        password: Math.random().toString(36).slice(-8) // Dummy password for anonymous users
       });
       
       await user.save();
@@ -77,8 +78,23 @@ io.on('connection', (socket) => {
         .sort({ createdAt: -1 })
         .limit(50)
         .populate('user', 'username avatar');
-      
+
+
       socket.emit('recent-messages', recentMessages.reverse());
+
+      // Send user info to the socket
+      console.log(`[join-chat] Emitting user-info to socket ${socket.id}:`, {
+        _id: user._id,
+        username: user.username,
+        avatar: user.avatar,
+        joinedAt: user.joinedAt
+      });
+      socket.emit('user-info', {
+        _id: user._id,
+        username: user.username,
+        avatar: user.avatar,
+        joinedAt: user.joinedAt
+      });
     } catch (error) {
       console.error('Error handling user join:', error);
     }
@@ -87,8 +103,12 @@ io.on('connection', (socket) => {
   // Handle new message
   socket.on('new-message', async (messageData) => {
     try {
+      console.log(`[new-message] Received from socket ${socket.id}:`, messageData);
       const user = activeUsers.get(socket.id);
-      if (!user) return;
+      if (!user) {
+        console.warn(`[new-message] No active user found for socket ${socket.id}`);
+        return;
+      }
 
       const message = new Message({
         content: messageData.content,
@@ -104,6 +124,17 @@ io.on('connection', (socket) => {
       await message.populate('user', 'username avatar');
 
       // Broadcast message to all users
+      console.log(`[new-message] Broadcasting message:`, {
+        _id: message._id,
+        content: message.content,
+        type: message.type,
+        user: message.user,
+        fileUrl: message.fileUrl,
+        fileName: message.fileName,
+        createdAt: message.createdAt,
+        reactions: message.reactions,
+        isPinned: message.isPinned
+      });
       io.emit('message-received', {
         _id: message._id,
         content: message.content,
@@ -117,61 +148,6 @@ io.on('connection', (socket) => {
       });
     } catch (error) {
       console.error('Error handling message:', error);
-    }
-  });
-
-  // Handle message reaction
-  socket.on('toggle-reaction', async (data) => {
-    try {
-      const { messageId, emoji } = data;
-      const user = activeUsers.get(socket.id);
-      if (!user) return;
-
-      const message = await Message.findById(messageId);
-      if (!message) return;
-
-      const existingReaction = message.reactions.find(r => 
-        r.emoji === emoji && r.user.toString() === user._id.toString()
-      );
-
-      if (existingReaction) {
-        message.reactions.pull(existingReaction._id);
-      } else {
-        message.reactions.push({
-          emoji,
-          user: user._id
-        });
-      }
-
-      await message.save();
-      await message.populate('reactions.user', 'username');
-
-      io.emit('reaction-updated', {
-        messageId,
-        reactions: message.reactions
-      });
-    } catch (error) {
-      console.error('Error handling reaction:', error);
-    }
-  });
-
-  // Handle typing indicators
-  socket.on('typing-start', () => {
-    const user = activeUsers.get(socket.id);
-    if (user) {
-      socket.broadcast.emit('user-typing', {
-        username: user.username,
-        avatar: user.avatar
-      });
-    }
-  });
-
-  socket.on('typing-stop', () => {
-    const user = activeUsers.get(socket.id);
-    if (user) {
-      socket.broadcast.emit('user-stop-typing', {
-        username: user.username
-      });
     }
   });
 

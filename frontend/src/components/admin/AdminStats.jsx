@@ -136,9 +136,7 @@ const AdminStats = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
             <span className="text-gray-600 dark:text-gray-400">Server Uptime:</span>
-            <span className="ml-2 text-gray-900 dark:text-white font-medium">
-              {Math.floor(process.uptime?.() / 3600) || 0}h {Math.floor((process.uptime?.() % 3600) / 60) || 0}m
-            </span>
+            <span className="ml-2 text-gray-900 dark:text-white font-medium">N/A</span>
           </div>
           <div>
             <span className="text-gray-600 dark:text-gray-400">Message Cleanup:</span>

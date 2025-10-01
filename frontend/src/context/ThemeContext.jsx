@@ -13,7 +13,7 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
   const [isDark, setIsDark] = useState(() => {
-    // Check if user has a preference in localStorage
+    // Check localStorage first
     const saved = localStorage.getItem('theme');
     if (saved) {
       return saved === 'dark';
@@ -35,6 +35,7 @@ export const ThemeProvider = ({ children }) => {
   }, [isDark]);
 
   const toggleTheme = () => {
+    console.log('Toggling theme from', isDark ? 'dark' : 'light');
     setIsDark(!isDark);
   };
 

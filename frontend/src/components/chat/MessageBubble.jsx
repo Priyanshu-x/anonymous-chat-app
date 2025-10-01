@@ -1,25 +1,23 @@
-// frontend/src/components/chat/MessageBubble.jsx
+// frontend/src/components/chat/MessageBubble.jsx - WORKING VERSION
 import React, { useState } from 'react';
 import { useSocket } from '../../context/SocketContext';
-import VoiceMessage from './VoiceMessage';
-import EmojiReactions from './EmojiReactions';
-import { Pin, MoreVertical, Copy, Reply } from 'lucide-react';
+import { formatTime } from '../../utils/helpers';
+import { Pin, MoreVertical, Copy } from 'lucide-react';
 
 const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
   const { toggleReaction } = useSocket();
   const [showReactions, setShowReactions] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
-  const formatTime = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
-
   const handleReaction = (emoji) => {
     toggleReaction(message._id, emoji);
     setShowReactions(false);
+  };
+
+  const copyMessage = () => {
+    navigator.clipboard.writeText(message.content);
+    setShowMenu(false);
+    alert('Message copied to clipboard!');
   };
 
   const renderMessageContent = () => {
@@ -38,10 +36,7 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
               src={`http://localhost:5000${message.fileUrl}`}
               alt="Shared image"
               className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => {
-                // Open image in modal/new tab
-                window.open(`http://localhost:5000${message.fileUrl}`, '_blank');
-              }}
+              onClick={() => window.open(`http://localhost:5000${message.fileUrl}`, '_blank')}
             />
             {message.content && (
               <p className="text-sm mt-2 break-words whitespace-pre-wrap">
@@ -52,16 +47,25 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
         );
       
       case 'voice':
-        return <VoiceMessage message={message} />;
+        return (
+          <div className="flex items-center space-x-3 py-2">
+            <button className="w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center">
+              ▶️
+            </button>
+            <div className="flex-1">
+              <div className="text-sm text-gray-600 dark:text-gray-400">Voice message</div>
+              <audio controls className="mt-1">
+                <source src={`http://localhost:5000${message.fileUrl}`} type="audio/webm" />
+                Your browser does not support the audio element.
+              </audio>
+            </div>
+          </div>
+        );
       
       case 'sticker':
         return (
           <div className="relative">
-            <img
-              src={`http://localhost:5000${message.fileUrl}`}
-              alt="Sticker"
-              className="w-24 h-24 object-contain"
-            />
+            <div className="text-4xl">{message.content}</div>
           </div>
         );
       
@@ -80,9 +84,8 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
           className="w-8 h-8 rounded-full flex-shrink-0"
         />
       )}
-      {showAvatar && isOwnMessage && <div className="w-8" />}
 
-      <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-xs md:max-w-md lg:max-w-lg`}>
+      <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-xs md:max-w-md`}>
         {/* Username and time */}
         {showAvatar && (
           <div className={`flex items-center space-x-2 mb-1 ${isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''}`}>
@@ -102,8 +105,10 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
         <div className="relative">
           <div
             className={`
-              ${isOwnMessage ? 'chat-bubble-user' : 'chat-bubble-other'}
-              relative group-hover:shadow-lg transition-shadow duration-200
+              ${isOwnMessage 
+                ? 'bg-blue-500 text-white rounded-2xl rounded-br-md' 
+                : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-2xl rounded-bl-md border border-gray-200 dark:border-gray-600'
+              } px-4 py-2 shadow-lg relative group-hover:shadow-xl transition-shadow duration-200
             `}
             onDoubleClick={() => setShowReactions(!showReactions)}
           >
@@ -120,10 +125,7 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
             {showMenu && (
               <div className="absolute top-6 right-0 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-1 z-10">
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(message.content);
-                    setShowMenu(false);
-                  }}
+                  onClick={copyMessage}
                   className="flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
                 >
                   <Copy className="h-4 w-4" />
@@ -145,7 +147,7 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
 
           {/* Quick reaction picker */}
           {showReactions && (
-            <div className="absolute top-full mt-1 bg-white dark:bg-gray-700 rounded-full shadow-lg border border-gray-200 dark:border-gray-600 px-2 py-1 flex space-x-1 z-10 animate-slide-in-up">
+            <div className="absolute top-full mt-1 bg-white dark:bg-gray-700 rounded-full shadow-lg border border-gray-200 dark:border-gray-600 px-2 py-1 flex space-x-1 z-10">
               {['👍', '❤️', '😂', '😮', '😢', '😡'].map((emoji) => (
                 <button
                   key={emoji}
@@ -160,16 +162,30 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
 
           {/* Reactions */}
           {message.reactions && message.reactions.length > 0 && (
-            <EmojiReactions 
-              reactions={message.reactions} 
-              onReactionClick={handleReaction}
-            />
+            <div className="flex flex-wrap gap-1 mt-2">
+              {Object.entries(
+                message.reactions.reduce((acc, reaction) => {
+                  if (!acc[reaction.emoji]) {
+                    acc[reaction.emoji] = [];
+                  }
+                  acc[reaction.emoji].push(reaction);
+                  return acc;
+                }, {})
+              ).map(([emoji, reactionList]) => (
+                <button
+                  key={emoji}
+                  onClick={() => handleReaction(emoji)}
+                  className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full px-2 py-1 text-xs transition-colors"
+                  title={`${reactionList.map(r => r.user.username).join(', ')} reacted with ${emoji}`}
+                >
+                  <span>{emoji}</span>
+                  <span className="text-gray-600 dark:text-gray-400">{reactionList.length}</span>
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>
-
-      {/* Spacing for own messages */}
-      {!showAvatar && isOwnMessage && <div className="w-8" />}
     </div>
   );
 };

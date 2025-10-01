@@ -1,4 +1,4 @@
-// frontend/src/components/ui/UserJoin.jsx
+// frontend/src/components/ui/UserJoin.jsx - WORKING VERSION
 import React, { useState, useEffect } from 'react';
 import { useSocket } from '../../context/SocketContext';
 import axios from 'axios';
@@ -18,13 +18,17 @@ const UserJoin = ({ onClose }) => {
         axios.get('http://localhost:5000/api/user/avatar')
       ]);
       
+      console.log('Generated username:', usernameRes.data);
+      console.log('Generated avatar:', avatarRes.data);
+      
       setUsername(usernameRes.data.username);
       setAvatar(avatarRes.data.avatar);
     } catch (error) {
       console.error('Failed to generate user data:', error);
       // Fallback
-      setUsername(`User${Math.floor(Math.random() * 10000)}`);
-      setAvatar(`https://api.dicebear.com/7.x/bottts/svg?seed=${Math.random()}`);
+      const randomNum = Math.floor(Math.random() * 10000);
+      setUsername(`User${randomNum}`);
+      setAvatar(`https://api.dicebear.com/7.x/bottts/svg?seed=${randomNum}`);
     } finally {
       setIsGenerating(false);
     }
@@ -35,13 +39,23 @@ const UserJoin = ({ onClose }) => {
   }, []);
 
   const handleJoin = () => {
-    if (!username.trim()) return;
+    if (!username.trim()) {
+      alert('Please enter a username');
+      return;
+    }
     
+    if (!avatar) {
+      alert('Please wait for avatar to load');
+      return;
+    }
+    
+    console.log('Joining chat with:', { username: username.trim(), avatar });
     joinChat({
       username: username.trim(),
       avatar: avatar
     });
     
+    // Close modal after joining
     onClose();
   };
 
@@ -53,7 +67,7 @@ const UserJoin = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 animate-slide-in-up">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
         {/* Header */}
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -70,12 +84,18 @@ const UserJoin = ({ onClose }) => {
         {/* Avatar Preview */}
         <div className="flex justify-center mb-6">
           <div className="relative">
-            {avatar && (
+            {avatar ? (
               <img
                 src={avatar}
                 alt="Your avatar"
                 className="w-20 h-20 rounded-full border-4 border-gray-200 dark:border-gray-600"
+                onError={() => {
+                  console.error('Avatar failed to load');
+                  setAvatar(`https://api.dicebear.com/7.x/bottts/svg?seed=${Date.now()}`);
+                }}
               />
+            ) : (
+              <div className="w-20 h-20 rounded-full border-4 border-gray-200 dark:border-gray-600 bg-gray-200 dark:bg-gray-600 animate-pulse"></div>
             )}
             <button
               onClick={generateRandomUser}
@@ -120,7 +140,7 @@ const UserJoin = ({ onClose }) => {
         {/* Join Button */}
         <button
           onClick={handleJoin}
-          disabled={!username.trim() || isGenerating}
+          disabled={!username.trim() || isGenerating || !avatar}
           className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition-colors disabled:cursor-not-allowed"
         >
           {isGenerating ? 'Generating...' : 'Join Chat'}
