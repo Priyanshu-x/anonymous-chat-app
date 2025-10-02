@@ -2,6 +2,7 @@
 const socketIo = require('socket.io');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const BlockedIP = require('../models/BlockedIP');
 
 let io;
 const activeUsers = new Map();
@@ -25,32 +26,37 @@ const initializeSocket = (server) => {
     // Handle user joining
     socket.on('join-chat', async (userData) => {
       try {
+        // Get IP address
+        const ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+        // Check if IP is blocked
+        const blocked = await BlockedIP.findOne({ ip });
+        if (blocked) {
+          socket.emit('error', { message: 'You are blocked from this chat.' });
+          socket.disconnect();
+          return;
+        }
         // Check if user already exists (reconnection)
         let user = await User.findOne({ socketId: socket.id });
-        
         if (!user) {
           user = new User({
             socketId: socket.id,
             username: userData.username,
             avatar: userData.avatar,
             joinedAt: new Date(),
-            lastActive: new Date()
+            lastActive: new Date(),
+            ip: ip
           });
           await user.save();
         }
-
         activeUsers.set(socket.id, user);
-
         // Join a room (for future private messaging feature)
         socket.join('public-chat');
-
         // Broadcast user joined
         socket.broadcast.emit('user-joined', {
           username: user.username,
           avatar: user.avatar,
           id: user._id
         });
-
         // Send current online users
         const onlineUsers = Array.from(activeUsers.values()).map(u => ({
           username: u.username,
@@ -103,7 +109,8 @@ const initializeSocket = (server) => {
           fileUrl: messageData.fileUrl,
           fileName: messageData.fileName,
           createdAt: new Date(),
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          reactions: []
         });
 
         await message.save();

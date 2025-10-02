@@ -77,9 +77,8 @@ router.get('/stats', adminAuth, async (req, res) => {
 router.get('/users', adminAuth, async (req, res) => {
   try {
     const users = await User.find()
-      .select('username avatar joinedAt messageCount isBanned')
+      .select('username avatar joinedAt messageCount isBanned ip')
       .sort({ joinedAt: -1 });
-    
     res.json(users);
   } catch (error) {
     res.status(500).json({ error: error.message });

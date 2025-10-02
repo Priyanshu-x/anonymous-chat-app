@@ -7,7 +7,8 @@ const UserSchema = new mongoose.Schema({
 	avatar: { type: String },
 	joinedAt: { type: Date, default: Date.now },
 	messageCount: { type: Number, default: 0 },
-	isBanned: { type: Boolean, default: false }
+	isBanned: { type: Boolean, default: false },
+	ip: { type: String }
 });
 
 UserSchema.pre('save', async function (next) {

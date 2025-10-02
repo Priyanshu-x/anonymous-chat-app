@@ -1,12 +1,13 @@
 // frontend/src/components/admin/UserManagement.jsx
 import React, { useState, useEffect } from 'react';
-import { Ban, UserX, MoreVertical } from 'lucide-react';
+import { Ban, UserX, MoreVertical, ShieldOff, Shield } from 'lucide-react';
 import axios from 'axios';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  const [blockedIps, setBlockedIps] = useState([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -19,13 +20,52 @@ const UserManagement = () => {
         setLoading(false);
       }
     };
-
+    const fetchBlockedIps = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/admin/blocked-ips');
+        setBlockedIps(response.data.map(ip => ip.ip));
+      } catch (error) {
+        // ignore
+      }
+    };
     fetchUsers();
-    
+    fetchBlockedIps();
     // Refresh every 30 seconds
-    const interval = setInterval(fetchUsers, 30000);
+    const interval = setInterval(() => {
+      fetchUsers();
+      fetchBlockedIps();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
+  const blockIp = async (ip) => {
+    if (!ip) return alert('No IP found for this user.');
+    if (!confirm(`Block IP ${ip}? This will prevent all future logins from this address.`)) return;
+    setActionLoading(ip);
+    try {
+      await axios.post('http://localhost:5000/api/admin/block-ip', { ip });
+      setBlockedIps(prev => [...prev, ip]);
+      alert('IP blocked successfully');
+    } catch (error) {
+      alert('Failed to block IP');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const unblockIp = async (ip) => {
+    if (!ip) return alert('No IP found for this user.');
+    if (!confirm(`Unblock IP ${ip}?`)) return;
+    setActionLoading(ip);
+    try {
+      await axios.delete(`http://localhost:5000/api/admin/block-ip/${ip}`);
+      setBlockedIps(prev => prev.filter(bip => bip !== ip));
+      alert('IP unblocked successfully');
+    } catch (error) {
+      alert('Failed to unblock IP');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const kickUser = async (userId) => {
     if (!confirm('Are you sure you want to kick this user?')) return;
@@ -78,6 +118,7 @@ const UserManagement = () => {
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
               <th className="px-6 py-3">User</th>
+              <th className="px-6 py-3">IP</th>
               <th className="px-6 py-3">Joined</th>
               <th className="px-6 py-3">Messages</th>
               <th className="px-6 py-3">Status</th>
@@ -88,6 +129,14 @@ const UserManagement = () => {
             {users.map((user) => (
               <tr key={user._id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                 <td className="px-6 py-4">
+                <td className="px-6 py-4">
+                  <span className="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                    {user.ip || 'N/A'}
+                  </span>
+                  {user.ip && blockedIps.includes(user.ip) && (
+                    <span className="ml-2 text-xs text-red-500">Blocked</span>
+                  )}
+                </td>
                   <div className="flex items-center space-x-3">
                     <img
                       src={user.avatar}
@@ -130,6 +179,14 @@ const UserManagement = () => {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex space-x-2">
+                    <button
+                      onClick={() => user.ip && (blockedIps.includes(user.ip) ? unblockIp(user.ip) : blockIp(user.ip))}
+                      disabled={actionLoading === user.ip}
+                      className={`p-2 ${blockedIps.includes(user.ip) ? 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'} rounded-lg transition-colors disabled:opacity-50`}
+                      title={blockedIps.includes(user.ip) ? 'Unblock IP' : 'Block IP'}
+                    >
+                      {blockedIps.includes(user.ip) ? <ShieldOff className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
+                    </button>
                     <button
                       onClick={() => kickUser(user._id)}
                       disabled={actionLoading === user._id || user.isBanned}
