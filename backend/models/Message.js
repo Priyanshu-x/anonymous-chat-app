@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const MessageSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   content: { type: String },
-  type: { type: String, enum: ['text', 'image', 'voice'], default: 'text' },
+  type: { type: String, enum: ['text', 'image', 'voice', 'file'], default: 'text' },
   fileUrl: { type: String },
   fileName: { type: String },
   isPinned: { type: Boolean, default: false },

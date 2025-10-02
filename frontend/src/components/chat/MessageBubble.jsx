@@ -28,7 +28,6 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
             {message.content}
           </p>
         );
-      
       case 'image':
         return (
           <div className="relative">
@@ -45,7 +44,6 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
             )}
           </div>
         );
-      
       case 'voice':
         return (
           <div className="flex items-center space-x-3 py-2">
@@ -61,14 +59,26 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
             </div>
           </div>
         );
-      
+      case 'file':
+        return (
+          <div className="flex items-center space-x-2">
+            <a
+              href={`http://localhost:5000${message.fileUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 dark:text-blue-400 underline break-all"
+              download={message.fileName}
+            >
+              📎 {message.fileName || 'Download file'}
+            </a>
+          </div>
+        );
       case 'sticker':
         return (
           <div className="relative">
             <div className="text-4xl">{message.content}</div>
           </div>
         );
-      
       default:
         return <p className="text-sm">Unsupported message type</p>;
     }

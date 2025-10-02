@@ -59,7 +59,6 @@ const MessageInput = () => {
       try {
         setIsUploading(true);
         const formData = new FormData();
-        
         if (selectedFile.type.startsWith('image/')) {
           formData.append('image', selectedFile);
           const response = await axios.post('http://localhost:5000/api/chat/upload/image', formData);
@@ -72,6 +71,13 @@ const MessageInput = () => {
           messageData.type = 'voice';
           messageData.fileUrl = response.data.fileUrl;
           messageData.fileName = response.data.fileName;
+        } else {
+          formData.append('file', selectedFile);
+          const response = await axios.post('http://localhost:5000/api/chat/upload/file', formData);
+          messageData.type = 'file';
+          messageData.fileUrl = response.data.fileUrl;
+          messageData.fileName = response.data.fileName;
+          messageData.fileType = response.data.fileType;
         }
       } catch (error) {
         console.error('File upload failed:', error);
@@ -301,7 +307,7 @@ const MessageInput = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*,audio/*"
+        accept="image/*,audio/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-rar-compressed,application/octet-stream,.txt"
         onChange={handleFileSelect}
         className="hidden"
       />

@@ -12,6 +12,8 @@ const storage = multer.diskStorage({
       cb(null, 'uploads/images/');
     } else if (file.fieldname === 'voice') {
       cb(null, 'uploads/voice/');
+    } else if (file.fieldname === 'file') {
+      cb(null, 'uploads/files/');
     }
   },
   filename: (req, file, cb) => {
@@ -38,9 +40,27 @@ const upload = multer({
       } else {
         cb(new Error('Only audio files are allowed'));
       }
+    } else if (file.fieldname === 'file') {
+      // Accept any file type for generic file uploads
+      cb(null, true);
     } else {
       cb(new Error('Invalid file field'));
     }
+  }
+});
+// Upload generic file
+router.post('/upload/file', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    res.json({
+      fileUrl: `/uploads/files/${req.file.filename}`,
+      fileName: req.file.originalname,
+      fileType: req.file.mimetype
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
