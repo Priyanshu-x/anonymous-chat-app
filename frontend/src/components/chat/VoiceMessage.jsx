@@ -61,7 +61,7 @@ const VoiceMessage = ({ message }) => {
     <div className="flex items-center space-x-3 py-2 min-w-0">
       <audio
         ref={audioRef}
-        src={`http://localhost:5000${message.fileUrl}`}
+        src={`${import.meta.env.VITE_BACKEND_URL}${message.fileUrl}`}
         preload="metadata"
       />
       

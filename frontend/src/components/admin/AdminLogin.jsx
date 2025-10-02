@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Eye, EyeOff } from 'lucide-react';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -17,7 +17,7 @@ const AdminLogin = () => {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/admin/login', credentials);
+  const response = await api.post('/api/admin/login', credentials);
       
       // Store token
       localStorage.setItem('adminToken', response.data.token);

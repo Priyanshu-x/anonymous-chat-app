@@ -32,10 +32,10 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
         return (
           <div className="relative">
             <img
-              src={`http://localhost:5000${message.fileUrl}`}
+              src={`${import.meta.env.VITE_BACKEND_URL}${message.fileUrl}`}
               alt="Shared image"
               className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => window.open(`http://localhost:5000${message.fileUrl}`, '_blank')}
+              onClick={() => window.open(`${import.meta.env.VITE_BACKEND_URL}${message.fileUrl}`, '_blank')}
             />
             {message.content && (
               <p className="text-sm mt-2 break-words whitespace-pre-wrap">
@@ -53,7 +53,7 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
             <div className="flex-1">
               <div className="text-sm text-gray-600 dark:text-gray-400">Voice message</div>
               <audio controls className="mt-1">
-                <source src={`http://localhost:5000${message.fileUrl}`} type="audio/webm" />
+                <source src={`${import.meta.env.VITE_BACKEND_URL}${message.fileUrl}`} type="audio/webm" />
                 Your browser does not support the audio element.
               </audio>
             </div>
@@ -63,7 +63,7 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar }) => {
         return (
           <div className="flex items-center space-x-2">
             <a
-              href={`http://localhost:5000${message.fileUrl}`}
+              href={`${import.meta.env.VITE_BACKEND_URL}${message.fileUrl}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 underline break-all"

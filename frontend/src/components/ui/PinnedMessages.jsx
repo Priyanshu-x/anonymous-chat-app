@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSocket } from '../../context/SocketContext';
 import MessageBubble from '../chat/MessageBubble';
 import { Pin } from 'lucide-react';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const PinnedMessages = () => {
   const [pinnedMessages, setPinnedMessages] = useState([]);
@@ -12,7 +12,7 @@ const PinnedMessages = () => {
   useEffect(() => {
     const fetchPinnedMessages = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/chat/pinned');
+  const response = await api.get('/api/chat/pinned');
         setPinnedMessages(response.data);
       } catch (error) {
         console.error('Failed to fetch pinned messages:', error);

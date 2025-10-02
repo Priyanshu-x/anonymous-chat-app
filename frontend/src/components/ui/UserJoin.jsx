@@ -1,7 +1,7 @@
 // frontend/src/components/ui/UserJoin.jsx - WORKING VERSION
 import React, { useState, useEffect } from 'react';
 import { useSocket } from '../../context/SocketContext';
-import axios from 'axios';
+import api from '../../utils/api';
 import { RefreshCw, User } from 'lucide-react';
 
 const UserJoin = ({ onClose }) => {
@@ -14,8 +14,8 @@ const UserJoin = ({ onClose }) => {
     setIsGenerating(true);
     try {
       const [usernameRes, avatarRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/user/username'),
-        axios.get('http://localhost:5000/api/user/avatar')
+        api.get('/api/user/username'),
+        api.get('/api/user/avatar')
       ]);
       
       console.log('Generated username:', usernameRes.data);
