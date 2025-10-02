@@ -15,7 +15,7 @@ import {
   Pin,
   Trash2
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('stats');
@@ -36,7 +36,7 @@ const AdminDashboard = () => {
     setAdminUser(JSON.parse(user));
     
     // Set axios default header
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }, [navigate]);
 
   const handleLogout = () => {
@@ -51,7 +51,7 @@ const AdminDashboard = () => {
     
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/admin/announcement', {
+  await api.post('/api/admin/announcement', {
         content: announcement,
         type: 'info'
       });
@@ -198,7 +198,7 @@ const MessageManagement = () => {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/chat/messages?limit=100');
+  const response = await api.get('/api/chat/messages?limit=100');
         setMessages(response.data.messages);
       } catch (error) {
         console.error('Failed to fetch messages:', error);
@@ -214,7 +214,7 @@ const MessageManagement = () => {
     if (!confirm('Are you sure you want to delete this message?')) return;
     
     try {
-      await axios.delete(`http://localhost:5000/api/admin/messages/${messageId}`);
+  await api.delete(`/api/admin/messages/${messageId}`);
       setMessages(prev => prev.filter(msg => msg._id !== messageId));
       alert('Message deleted successfully');
     } catch (error) {
@@ -224,7 +224,7 @@ const MessageManagement = () => {
 
   const togglePin = async (messageId, isPinned) => {
     try {
-      await axios.patch(`http://localhost:5000/api/admin/messages/${messageId}/pin`);
+  await api.patch(`/api/admin/messages/${messageId}/pin`);
       setMessages(prev => prev.map(msg => 
         msg._id === messageId ? { ...msg, isPinned: !isPinned } : msg
       ));

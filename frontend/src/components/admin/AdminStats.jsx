@@ -1,7 +1,7 @@
 // frontend/src/components/admin/AdminStats.jsx
 import React, { useState, useEffect } from 'react';
 import { Users, MessageSquare, Mic, Image, Pin, TrendingUp } from 'lucide-react';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const AdminStats = () => {
   const [stats, setStats] = useState(null);
@@ -10,7 +10,7 @@ const AdminStats = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/admin/stats');
+  const response = await api.get('/api/admin/stats');
         setStats(response.data);
       } catch (error) {
         console.error('Failed to fetch stats:', error);

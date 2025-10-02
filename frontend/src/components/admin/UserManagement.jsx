@@ -1,7 +1,7 @@
 // frontend/src/components/admin/UserManagement.jsx
 import React, { useState, useEffect } from 'react';
 import { Ban, UserX, MoreVertical, ShieldOff, Shield } from 'lucide-react';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -12,7 +12,7 @@ const UserManagement = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/admin/users');
+  const response = await api.get('/api/admin/users');
         setUsers(response.data);
       } catch (error) {
         console.error('Failed to fetch users:', error);
@@ -22,7 +22,7 @@ const UserManagement = () => {
     };
     const fetchBlockedIps = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/admin/blocked-ips');
+  const response = await api.get('/api/admin/blocked-ips');
         setBlockedIps(response.data.map(ip => ip.ip));
       } catch (error) {
         // ignore
@@ -42,7 +42,7 @@ const UserManagement = () => {
     if (!confirm(`Block IP ${ip}? This will prevent all future logins from this address.`)) return;
     setActionLoading(ip);
     try {
-      await axios.post('http://localhost:5000/api/admin/block-ip', { ip });
+  await api.post('/api/admin/block-ip', { ip });
       setBlockedIps(prev => [...prev, ip]);
       alert('IP blocked successfully');
     } catch (error) {
@@ -57,7 +57,7 @@ const UserManagement = () => {
     if (!confirm(`Unblock IP ${ip}?`)) return;
     setActionLoading(ip);
     try {
-      await axios.delete(`http://localhost:5000/api/admin/block-ip/${ip}`);
+  await api.delete(`/api/admin/block-ip/${ip}`);
       setBlockedIps(prev => prev.filter(bip => bip !== ip));
       alert('IP unblocked successfully');
     } catch (error) {
@@ -72,7 +72,7 @@ const UserManagement = () => {
     
     setActionLoading(userId);
     try {
-      await axios.post(`http://localhost:5000/api/admin/users/${userId}/kick`);
+  await api.post(`/api/admin/users/${userId}/kick`);
       setUsers(prev => prev.filter(user => user._id !== userId));
       alert('User kicked successfully');
     } catch (error) {
@@ -87,7 +87,7 @@ const UserManagement = () => {
     
     setActionLoading(userId);
     try {
-      await axios.post(`http://localhost:5000/api/admin/users/${userId}/ban`, { duration });
+  await api.post(`/api/admin/users/${userId}/ban`, { duration });
       setUsers(prev => prev.map(user => 
         user._id === userId ? { ...user, isBanned: true } : user
       ));

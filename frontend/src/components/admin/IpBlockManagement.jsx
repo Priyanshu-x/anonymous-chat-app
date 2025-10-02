@@ -1,6 +1,6 @@
 // frontend/src/components/admin/IpBlockManagement.jsx
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { Trash2 } from 'lucide-react';
 
 const IpBlockManagement = () => {
@@ -11,7 +11,7 @@ const IpBlockManagement = () => {
   const fetchBlockedIps = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:5000/api/admin/blocked-ips');
+  const res = await api.get('/api/admin/blocked-ips');
       setBlockedIps(res.data);
     } catch (e) {
       // ignore
@@ -27,7 +27,7 @@ const IpBlockManagement = () => {
   const handleBlock = async () => {
     if (!newIp.trim()) return;
     try {
-      await axios.post('http://localhost:5000/api/admin/block-ip', { ip: newIp });
+  await api.post('/api/admin/block-ip', { ip: newIp });
       setNewIp('');
       fetchBlockedIps();
     } catch (e) {
@@ -38,7 +38,7 @@ const IpBlockManagement = () => {
   const handleUnblock = async (ip) => {
     if (!window.confirm(`Unblock IP ${ip}?`)) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/block-ip/${ip}`);
+  await api.delete(`/api/admin/block-ip/${ip}`);
       fetchBlockedIps();
     } catch (e) {
       alert('Failed to unblock IP');

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSocket } from '../../context/SocketContext';
 import { Send, Image, Mic, MicOff, Smile } from 'lucide-react';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const MessageInput = () => {
   const { sendMessage, startTyping, stopTyping, user } = useSocket();
@@ -61,19 +61,19 @@ const MessageInput = () => {
         const formData = new FormData();
         if (selectedFile.type.startsWith('image/')) {
           formData.append('image', selectedFile);
-          const response = await axios.post('http://localhost:5000/api/chat/upload/image', formData);
+          const response = await api.post('/api/chat/upload/image', formData);
           messageData.type = 'image';
           messageData.fileUrl = response.data.fileUrl;
           messageData.fileName = response.data.fileName;
         } else if (selectedFile.type.startsWith('audio/')) {
           formData.append('voice', selectedFile);
-          const response = await axios.post('http://localhost:5000/api/chat/upload/voice', formData);
+          const response = await api.post('/api/chat/upload/voice', formData);
           messageData.type = 'voice';
           messageData.fileUrl = response.data.fileUrl;
           messageData.fileName = response.data.fileName;
         } else {
           formData.append('file', selectedFile);
-          const response = await axios.post('http://localhost:5000/api/chat/upload/file', formData);
+          const response = await api.post('/api/chat/upload/file', formData);
           messageData.type = 'file';
           messageData.fileUrl = response.data.fileUrl;
           messageData.fileName = response.data.fileName;
