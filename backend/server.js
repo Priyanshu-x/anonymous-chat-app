@@ -36,6 +36,7 @@ const AdminUser = require('./models/AdminUser');
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/user', require('./routes/user'));
+app.use('/api/admin', require('./routes/adminBlockIp'));
 
 // Socket.io connection handling
 const activeUsers = new Map();

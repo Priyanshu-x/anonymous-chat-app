@@ -8,11 +8,11 @@ A modern, real-time anonymous chat application with a sleek UI/UX, built with Re
 - **Anonymous Public Chat**: No signup required, just pick a username and start chatting
 - **Real-time Messaging**: Instant message delivery with Socket.io
 - **Ephemeral Messages**: Messages auto-delete after 24 hours
-- **Multiple Message Types**: Text, images, voice messages, and stickers
+- **Multiple Message Types**: Text, images, voice messages, and stickers etc
 - **Emoji Reactions**: React to messages with emojis
-- **Message Pinning**: Pin important messages for everyone to see
+- @@Message Pinning**: Pin important messages for everyone to see
 - **Online Users**: See who's currently active in the chat
-- **Typing Indicators**: Know when someone is typing
+- @@Typing Indicators**: Know when someone is typing
 
 ### 🎨 UI/UX Features
 - **Dark/Light Mode**: Toggle between themes

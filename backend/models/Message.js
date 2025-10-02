@@ -7,7 +7,13 @@ const MessageSchema = new mongoose.Schema({
   fileUrl: { type: String },
   fileName: { type: String },
   isPinned: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  reactions: [
+    {
+      emoji: { type: String, required: true },
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+    }
+  ]
 });
 
 module.exports = mongoose.model('Message', MessageSchema);

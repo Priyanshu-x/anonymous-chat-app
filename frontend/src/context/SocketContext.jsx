@@ -109,7 +109,10 @@ export const SocketProvider = ({ children }) => {
 
   const toggleReaction = (messageId, emoji) => {
     if (socket && connected) {
+      console.log('[toggleReaction] Emitting toggle-reaction:', { messageId, emoji });
       socket.emit('toggle-reaction', { messageId, emoji });
+    } else {
+      console.warn('[toggleReaction] Socket not connected, cannot emit reaction.');
     }
   };
 

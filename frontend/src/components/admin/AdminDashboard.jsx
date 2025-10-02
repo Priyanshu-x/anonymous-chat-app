@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserManagement from './UserManagement';
 import AdminStats from './AdminStats';
+import IpBlockManagement from './IpBlockManagement';
 import { 
   BarChart3, 
   Users, 
@@ -67,6 +68,7 @@ const AdminDashboard = () => {
     { id: 'stats', name: 'Statistics', icon: BarChart3 },
     { id: 'users', name: 'Users', icon: Users },
     { id: 'messages', name: 'Messages', icon: MessageSquare },
+    { id: 'ipblocks', name: 'IP Blocks', icon: Shield },
     { id: 'settings', name: 'Settings', icon: Settings }
   ];
 
@@ -180,6 +182,7 @@ const AdminDashboard = () => {
           {activeTab === 'stats' && <AdminStats />}
           {activeTab === 'users' && <UserManagement />}
           {activeTab === 'messages' && <MessageManagement />}
+          {activeTab === 'ipblocks' && <IpBlockManagement />}
           {activeTab === 'settings' && <AdminSettings />}
         </div>
       </main>
@@ -244,60 +247,61 @@ const MessageManagement = () => {
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
         Recent Messages ({messages.length})
       </h3>
-      
       <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
-        {messages.map((message) => (
-          <div key={message._id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <img
-                    src={message.user.avatar}
-                    alt={message.user.username}
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {message.user.username}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(message.createdAt).toLocaleString()}
-                    </p>
+        {messages.map((message) => {
+          if (!message.user) return null;
+          return (
+            <div key={message._id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <img
+                      src={message.user.avatar}
+                      alt={message.user.username}
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {message.user.username}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(message.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    {message.isPinned && (
+                      <span className="bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded-full text-xs font-medium">
+                        Pinned
+                      </span>
+                    )}
                   </div>
-                  {message.isPinned && (
-                    <span className="bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded-full text-xs font-medium">
-                      Pinned
-                    </span>
-                  )}
+                  <p className="text-gray-700 dark:text-gray-300 break-words">
+                    {message.content || `[${message.type} message]`}
+                  </p>
                 </div>
-                <p className="text-gray-700 dark:text-gray-300 break-words">
-                  {message.content || `[${message.type} message]`}
-                </p>
-              </div>
-              
-              <div className="flex space-x-2 ml-4">
-                <button
-                  onClick={() => togglePin(message._id, message.isPinned)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    message.isPinned
-                      ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                  title={message.isPinned ? 'Unpin message' : 'Pin message'}
-                >
-                  <Pin className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => deleteMessage(message._id)}
-                  className="p-2 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors"
-                  title="Delete message"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="flex space-x-2 ml-4">
+                  <button
+                    onClick={() => togglePin(message._id, message.isPinned)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      message.isPinned
+                        ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                    title={message.isPinned ? 'Unpin message' : 'Pin message'}
+                  >
+                    <Pin className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => deleteMessage(message._id)}
+                    className="p-2 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors"
+                    title="Delete message"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
