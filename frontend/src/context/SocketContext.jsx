@@ -22,7 +22,8 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     console.log('Initializing socket connection...');
     const newSocket = io(import.meta.env.VITE_BACKEND_URL, {
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      withCredentials: true
     });
 
     newSocket.on('user-info', (userInfo) => {
