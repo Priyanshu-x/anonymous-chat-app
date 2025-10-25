@@ -1,6 +1,6 @@
 // frontend/src/components/chat/MessageBubble.jsx - WORKING VERSION
 import React, { useState } from 'react';
-import { useSocket } from '../../context/SocketContext';
+import { useSocket } from '../../hooks/useSocket';
 import { formatTime } from '../../utils/helpers';
 import { Pin, MoreVertical, Copy } from 'lucide-react';
 
