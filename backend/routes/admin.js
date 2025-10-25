@@ -6,6 +6,8 @@ const Message = require('../models/Message');
 const User = require('../models/User');
 const adminAuth = require('../middleware/adminAuth');
 const router = express.Router();
+const { validateInput } = require('../middleware/auth');
+const { banUserSchema, announcementSchema } = require('../utils/validationSchemas');
 
 // Admin login
 router.post('/login', async (req, res) => {
@@ -22,13 +24,13 @@ router.post('/login', async (req, res) => {
         });
         await admin.save();
       } else {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        throw new Error('Invalid credentials', 401);
       }
     }
 
     const isValid = await admin.comparePassword(password);
     if (!isValid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      throw new Error('Invalid credentials', 401);
     }
 
     admin.lastLogin = new Date();
@@ -49,7 +51,7 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
@@ -69,7 +71,7 @@ router.get('/stats', adminAuth, async (req, res) => {
     
     res.json(stats);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
@@ -81,19 +83,19 @@ router.get('/users', adminAuth, async (req, res) => {
       .sort({ joinedAt: -1 });
     res.json(users);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // Ban user
-router.post('/users/:userId/ban', adminAuth, async (req, res) => {
+router.post('/users/:userId/ban', adminAuth, validateInput(banUserSchema), async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const { duration = 24 } = req.body; // hours
+    const { duration } = req.body; // hours
     
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      throw new Error('User not found', 404);
     }
     
     user.isBanned = true;
@@ -101,7 +103,8 @@ router.post('/users/:userId/ban', adminAuth, async (req, res) => {
     await user.save();
     
     // Emit ban event to socket
-    const { io } = require('../server');
+    const { getIO } = require('../config/socket');
+    const io = getIO();
     io.to(user.socketId).emit('user-banned', {
       reason: 'Banned by administrator',
       duration: duration
@@ -109,7 +112,7 @@ router.post('/users/:userId/ban', adminAuth, async (req, res) => {
     
     res.json({ message: 'User banned successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
@@ -120,11 +123,12 @@ router.post('/users/:userId/kick', adminAuth, async (req, res) => {
     
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      throw new Error('User not found', 404);
     }
     
     // Emit kick event to socket
-    const { io } = require('../server');
+    const { getIO } = require('../config/socket');
+    const io = getIO();
     io.to(user.socketId).emit('user-kicked', {
       reason: 'Kicked by administrator'
     });
@@ -134,7 +138,7 @@ router.post('/users/:userId/kick', adminAuth, async (req, res) => {
     
     res.json({ message: 'User kicked successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
@@ -145,16 +149,17 @@ router.delete('/messages/:messageId', adminAuth, async (req, res) => {
     
     const message = await Message.findByIdAndDelete(messageId);
     if (!message) {
-      return res.status(404).json({ error: 'Message not found' });
+      throw new Error('Message not found', 404);
     }
     
     // Emit message deletion to all clients
-    const { io } = require('../server');
+    const { getIO } = require('../config/socket');
+    const io = getIO();
     io.emit('message-deleted', { messageId });
     
     res.json({ message: 'Message deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
@@ -165,14 +170,15 @@ router.patch('/messages/:messageId/pin', adminAuth, async (req, res) => {
     
     const message = await Message.findById(messageId);
     if (!message) {
-      return res.status(404).json({ error: 'Message not found' });
+      throw new Error('Message not found', 404);
     }
     
     message.isPinned = !message.isPinned;
     await message.save();
     
     // Emit pin update to all clients
-    const { io } = require('../server');
+    const { getIO } = require('../config/socket');
+    const io = getIO();
     io.emit('message-pin-updated', {
       messageId,
       isPinned: message.isPinned
@@ -180,17 +186,18 @@ router.patch('/messages/:messageId/pin', adminAuth, async (req, res) => {
     
     res.json({ message: `Message ${message.isPinned ? 'pinned' : 'unpinned'} successfully` });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // Broadcast announcement
-router.post('/announcement', adminAuth, async (req, res) => {
+router.post('/announcement', adminAuth, validateInput(announcementSchema), async (req, res, next) => {
   try {
-    const { content, type = 'info' } = req.body;
+    const { content, type } = req.body;
     
     // Emit announcement to all clients
-    const { io } = require('../server');
+    const { getIO } = require('../config/socket');
+    const io = getIO();
     io.emit('admin-announcement', {
       content,
       type,
@@ -199,7 +206,7 @@ router.post('/announcement', adminAuth, async (req, res) => {
     
     res.json({ message: 'Announcement sent successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 

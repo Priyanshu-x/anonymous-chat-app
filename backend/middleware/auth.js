@@ -1,6 +1,9 @@
 // backend/middleware/auth.js
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const getIp = require('./getIp');
+const logger = require('../utils/logger');
+const AppError = require('../utils/AppError');
 
 // Basic authentication middleware for regular users (if needed)
 const authenticateUser = async (req, res, next) => {
@@ -8,35 +11,31 @@ const authenticateUser = async (req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
-      return res.status(401).json({ error: 'Access denied. No token provided.' });
+      throw new Error('Access denied. No token provided.', 401);
     }
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId);
     
     if (!user) {
-      return res.status(401).json({ error: 'Invalid token. User not found.' });
+      throw new Error('Invalid token. User not found.', 401);
     }
     
     // Check if user is banned
     if (user.isBanned && user.bannedUntil && user.bannedUntil > new Date()) {
-      return res.status(403).json({ 
-        error: 'User is banned',
-        bannedUntil: user.bannedUntil,
-        reason: user.banReason
-      });
+      throw new Error('User is banned', 403, { bannedUntil: user.bannedUntil, reason: user.banReason });
     }
     
     req.user = user;
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired' });
+      throw new Error('Token expired', 401);
     }
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ error: 'Invalid token' });
+      throw new Error('Invalid token', 401);
     }
-    res.status(500).json({ error: 'Authentication failed' });
+    next(error);
   }
 };
 
@@ -45,7 +44,7 @@ const rateLimitMiddleware = (maxRequests = 10, windowMs = 60000) => {
   const requests = new Map();
   
   return (req, res, next) => {
-    const identifier = req.ip || req.connection.remoteAddress;
+    const identifier = getIp(req);
     const now = Date.now();
     
     if (!requests.has(identifier)) {
@@ -62,10 +61,7 @@ const rateLimitMiddleware = (maxRequests = 10, windowMs = 60000) => {
     }
     
     if (userRequests.count >= maxRequests) {
-      return res.status(429).json({ 
-        error: 'Too many requests. Please try again later.',
-        resetTime: userRequests.resetTime
-      });
+      throw new Error('Too many requests. Please try again later.', 429, { resetTime: userRequests.resetTime });
     }
     
     userRequests.count++;
@@ -78,10 +74,7 @@ const validateInput = (schema) => {
   return (req, res, next) => {
     const { error } = schema.validate(req.body);
     if (error) {
-      return res.status(400).json({ 
-        error: 'Validation failed',
-        details: error.details[0].message 
-      });
+      throw new Error('Validation failed', 400, { details: error.details[0].message });
     }
     next();
   };
@@ -91,23 +84,17 @@ const validateInput = (schema) => {
 const validateFileUpload = (allowedTypes, maxSize = 10 * 1024 * 1024) => {
   return (req, res, next) => {
     if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+      throw new Error('No file uploaded', 400);
     }
     
     // Check file type
     if (!allowedTypes.includes(req.file.mimetype)) {
-      return res.status(400).json({ 
-        error: 'Invalid file type',
-        allowedTypes 
-      });
+      throw new Error('Invalid file type', 400, { allowedTypes });
     }
     
     // Check file size
     if (req.file.size > maxSize) {
-      return res.status(400).json({ 
-        error: 'File too large',
-        maxSize: `${maxSize / (1024 * 1024)}MB` 
-      });
+      throw new Error('File too large', 400, { maxSize: `${maxSize / (1024 * 1024)}MB` });
     }
     
     next();
@@ -151,19 +138,19 @@ const adminAuth = async (req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
-      return res.status(401).json({ error: 'Access denied. No admin token provided.' });
+      throw new Error('Access denied. No admin token provided.', 401);
     }
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const admin = await AdminUser.findById(decoded.adminId).select('-password');
     
     if (!admin) {
-      return res.status(401).json({ error: 'Invalid token. Admin not found.' });
+      throw new Error('Invalid token. Admin not found.', 401);
     }
     
     // Check if admin account is active
     if (admin.isActive === false) {
-      return res.status(403).json({ error: 'Admin account is deactivated' });
+      throw new Error('Admin account is deactivated', 403);
     }
     
     // Update last activity
@@ -174,13 +161,12 @@ const adminAuth = async (req, res, next) => {
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Admin token expired. Please login again.' });
+      throw new Error('Admin token expired. Please login again.', 401);
     }
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ error: 'Invalid admin token' });
+      throw new Error('Invalid admin token', 401);
     }
-    console.error('Admin authentication error:', error);
-    res.status(500).json({ error: 'Admin authentication failed' });
+    next(error);
   }
 };
 
@@ -188,7 +174,7 @@ const adminAuth = async (req, res, next) => {
 const checkAdminPermission = (requiredPermission) => {
   return (req, res, next) => {
     if (!req.admin) {
-      return res.status(401).json({ error: 'Admin authentication required' });
+      throw new Error('Admin authentication required', 401);
     }
     
     // Super admin has all permissions
@@ -207,11 +193,7 @@ const checkAdminPermission = (requiredPermission) => {
       ];
       
       if (!moderatorPermissions.includes(requiredPermission)) {
-        return res.status(403).json({ 
-          error: 'Insufficient permissions',
-          required: requiredPermission,
-          userRole: req.admin.role 
-        });
+        throw new Error('Insufficient permissions', 403, { required: requiredPermission, userRole: req.admin.role });
       }
     }
     
@@ -228,7 +210,7 @@ const logAdminAction = (action) => {
       adminId: req.admin?._id,
       adminUsername: req.admin?.username,
       timestamp: new Date(),
-      ip: req.ip,
+      ip: getIp(req),
       userAgent: req.get('User-Agent'),
       params: req.params,
       body: { ...req.body }
@@ -240,7 +222,7 @@ const logAdminAction = (action) => {
     }
     
     // In production, you might want to save this to a separate audit log collection
-    console.log('Admin Action:', JSON.stringify(req.adminAction, null, 2));
+    logger.info('Admin Action:', req.adminAction);
     
     next();
   };
@@ -270,10 +252,7 @@ const adminRateLimit = (maxRequests = 100, windowMs = 60000) => {
     }
     
     if (userRequests.count >= maxRequests) {
-      return res.status(429).json({ 
-        error: 'Admin rate limit exceeded. Please slow down.',
-        resetTime: userRequests.resetTime
-      });
+      throw new Error('Admin rate limit exceeded. Please slow down.', 429, { resetTime: userRequests.resetTime });
     }
     
     userRequests.count++;
@@ -285,7 +264,7 @@ const adminRateLimit = (maxRequests = 100, windowMs = 60000) => {
 const validateAdminSession = async (req, res, next) => {
   try {
     if (!req.admin) {
-      return res.status(401).json({ error: 'Admin session required' });
+      throw new Error('Admin session required', 401);
     }
     
     // Check if session is still valid (not expired due to inactivity)
@@ -293,16 +272,12 @@ const validateAdminSession = async (req, res, next) => {
     const lastActivity = req.admin.lastActivity || req.admin.lastLogin;
     
     if (lastActivity && (Date.now() - lastActivity.getTime()) > maxInactivityTime) {
-      return res.status(401).json({ 
-        error: 'Admin session expired due to inactivity',
-        lastActivity: lastActivity 
-      });
+      throw new Error('Admin session expired due to inactivity', 401, { lastActivity });
     }
     
     next();
   } catch (error) {
-    console.error('Admin session validation error:', error);
-    res.status(500).json({ error: 'Session validation failed' });
+    next(error);
   }
 };
 

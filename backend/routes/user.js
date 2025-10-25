@@ -2,6 +2,10 @@
 const express = require('express');
 const User = require('../models/User');
 const router = express.Router();
+const { register, login, getProfile, updateProfile } = require('../controllers/userController');
+const { authenticateUser } = require('../middleware/auth');
+const { validateInput } = require('../middleware/auth');
+const { registerSchema, loginSchema, updateProfileSchema } = require('../utils/validationSchemas');
 
 // Generate random username
 router.get('/username', (req, res) => {
@@ -30,5 +34,11 @@ router.get('/avatar', (req, res) => {
     avatar: `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}&backgroundColor=${backgroundColor}`
   });
 });
+
+// User authentication routes
+router.post('/register', validateInput(registerSchema), register);
+router.post('/login', validateInput(loginSchema), login);
+router.get('/profile', authenticateUser, getProfile);
+router.patch('/profile', authenticateUser, validateInput(updateProfileSchema), updateProfile);
 
 module.exports = router;

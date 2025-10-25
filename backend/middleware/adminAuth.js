@@ -7,20 +7,20 @@ const adminAuth = async (req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
+      throw new Error('No token provided', 401);
     }
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const admin = await AdminUser.findById(decoded.adminId);
     
     if (!admin) {
-      return res.status(401).json({ error: 'Invalid token' });
+      throw new Error('Invalid token', 401);
     }
     
     req.admin = admin;
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+    next(error);
   }
 };
 

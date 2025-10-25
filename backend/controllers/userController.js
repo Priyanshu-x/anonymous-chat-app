@@ -5,17 +5,17 @@ exports.register = async (req, res) => {
 	try {
 		const { username, password, avatar } = req.body;
 		if (!username || !password) {
-			return res.status(400).json({ error: 'Username and password required' });
+			throw new Error('Username and password required', 400);
 		}
 		const existingUser = await User.findOne({ username });
 		if (existingUser) {
-			return res.status(409).json({ error: 'Username already exists' });
+			throw new Error('Username already exists', 409);
 		}
 		const user = new User({ username, password, avatar });
 		await user.save();
 		res.status(201).json({ success: true, user: { id: user._id, username: user.username, avatar: user.avatar } });
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };
 
@@ -24,11 +24,11 @@ exports.login = async (req, res) => {
 		const { username, password } = req.body;
 		const user = await User.findOne({ username });
 		if (!user) {
-			return res.status(401).json({ error: 'Invalid credentials' });
+			throw new Error('Invalid credentials', 401);
 		}
 		const isValid = await user.comparePassword(password);
 		if (!isValid) {
-			return res.status(401).json({ error: 'Invalid credentials' });
+			throw new Error('Invalid credentials', 401);
 		}
 		const token = jwt.sign(
 			{ userId: user._id, username: user.username },
@@ -37,17 +37,17 @@ exports.login = async (req, res) => {
 		);
 		res.json({ token, user: { id: user._id, username: user.username, avatar: user.avatar } });
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };
 
 exports.getProfile = async (req, res) => {
 	try {
 		const user = await User.findById(req.user.userId).select('username avatar joinedAt messageCount');
-		if (!user) return res.status(404).json({ error: 'User not found' });
+		if (!user) throw new Error('User not found', 404);
 		res.json(user);
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };
 
@@ -55,11 +55,11 @@ exports.updateProfile = async (req, res) => {
 	try {
 		const { avatar } = req.body;
 		const user = await User.findById(req.user.userId);
-		if (!user) return res.status(404).json({ error: 'User not found' });
+		if (!user) throw new Error('User not found', 404);
 		if (avatar) user.avatar = avatar;
 		await user.save();
 		res.json({ success: true, avatar: user.avatar });
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };

@@ -3,6 +3,9 @@ const socketIo = require('socket.io');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const BlockedIP = require('../models/BlockedIP');
+const getIp = require('../middleware/getIp');
+const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
 
 let io;
 const activeUsers = new Map();
@@ -21,19 +24,19 @@ const initializeSocket = (server) => {
   });
 
   io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.id}`);
+    logger.info(`User connected: ${socket.id}`);
 
     // Handle user joining
     socket.on('join-chat', async (userData) => {
       try {
         // Get IP address
-        const ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+        const ip = getIp(socket.handshake);
         // Check if IP is blocked
         const blocked = await BlockedIP.findOne({ ip });
         if (blocked) {
           socket.emit('error', { message: 'You are blocked from this chat.' });
           socket.disconnect();
-          return;
+          return; // Exit early if blocked
         }
         // Check if user already exists (reconnection)
         let user = await User.findOne({ socketId: socket.id });
@@ -44,7 +47,11 @@ const initializeSocket = (server) => {
             avatar: userData.avatar,
             joinedAt: new Date(),
             lastActive: new Date(),
-            ip: ip
+            ip: ip,
+            // For anonymous users, password is not required.
+            // If a password field is strictly necessary in the User model,
+            // consider making it optional or handling it differently for anonymous users.
+            // For now, we'll omit it as it's not used for anonymous authentication.
           });
           await user.save();
         }
@@ -75,10 +82,10 @@ const initializeSocket = (server) => {
         
         socket.emit('recent-messages', recentMessages.reverse());
 
-        console.log(`User ${user.username} joined the chat`);
+        logger.info(`User ${user.username} joined the chat`);
       } catch (error) {
-        console.error('Error handling user join:', error);
-        socket.emit('error', { message: 'Failed to join chat' });
+        logger.error('Error handling user join:', error);
+        socket.emit('error', { message: error.message || 'Failed to join chat' });
       }
     });
 
@@ -88,7 +95,7 @@ const initializeSocket = (server) => {
         const user = activeUsers.get(socket.id);
         if (!user) {
           socket.emit('error', { message: 'User not found' });
-          return;
+          return; // Exit early if user not found
         }
 
         // Rate limiting check
@@ -99,7 +106,7 @@ const initializeSocket = (server) => {
 
         if (recentMessages >= 10) {
           socket.emit('error', { message: 'Rate limit exceeded' });
-          return;
+          return; // Exit early if rate limit exceeded
         }
 
         const message = new Message({
@@ -134,10 +141,10 @@ const initializeSocket = (server) => {
           isPinned: message.isPinned
         });
 
-        console.log(`Message from ${user.username}: ${message.type}`);
+        logger.info(`Message from ${user.username}: ${message.type}`);
       } catch (error) {
-        console.error('Error handling message:', error);
-        socket.emit('error', { message: 'Failed to send message' });
+        logger.error('Error handling message:', error);
+        socket.emit('error', { message: error.message || 'Failed to send message' });
       }
     });
 
@@ -146,10 +153,16 @@ const initializeSocket = (server) => {
       try {
         const { messageId, emoji } = data;
         const user = activeUsers.get(socket.id);
-        if (!user) return;
+        if (!user) {
+          socket.emit('error', { message: 'User not found' });
+          return; // Exit early if user not found
+        }
 
         const message = await Message.findById(messageId);
-        if (!message) return;
+        if (!message) {
+          socket.emit('error', { message: 'Message not found' });
+          return; // Exit early if message not found
+        }
 
         const existingReaction = message.reactions.find(r => 
           r.emoji === emoji && r.user.toString() === user._id.toString()
@@ -172,7 +185,8 @@ const initializeSocket = (server) => {
           reactions: message.reactions
         });
       } catch (error) {
-        console.error('Error handling reaction:', error);
+        logger.error('Error handling reaction:', error);
+        socket.emit('error', { message: error.message || 'Failed to toggle reaction' });
       }
     });
 
@@ -219,7 +233,8 @@ const initializeSocket = (server) => {
           console.log(`User ${user.username} disconnected`);
         }
       } catch (error) {
-        console.error('Error handling disconnect:', error);
+        logger.error('Error handling disconnect:', error);
+        // No socket.emit here as the socket is already disconnected
       }
     });
 
@@ -235,7 +250,7 @@ const initializeSocket = (server) => {
 
 const getIO = () => {
   if (!io) {
-    throw new Error('Socket.io not initialized');
+    throw new AppError('Socket.io not initialized', 500);
   }
   return io;
 };

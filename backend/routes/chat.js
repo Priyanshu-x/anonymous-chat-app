@@ -4,6 +4,8 @@ const multer = require('multer');
 const path = require('path');
 const Message = require('../models/Message');
 const router = express.Router();
+const { validateInput, validateFileUpload } = require('../middleware/auth');
+const { messageSchema } = require('../utils/validationSchemas');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -49,50 +51,39 @@ const upload = multer({
   }
 });
 // Upload generic file
-router.post('/upload/file', upload.single('file'), (req, res) => {
+router.post('/upload/file', upload.single('file'), validateFileUpload(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']), (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
     res.json({
       fileUrl: `/uploads/files/${req.file.filename}`,
       fileName: req.file.originalname,
       fileType: req.file.mimetype
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // Upload image
-router.post('/upload/image', upload.single('image'), (req, res) => {
+router.post('/upload/image', upload.single('image'), validateFileUpload(['image/jpeg', 'image/png', 'image/gif']), (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
     res.json({
       fileUrl: `/uploads/images/${req.file.filename}`,
       fileName: req.file.originalname
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
 // Upload voice message
-router.post('/upload/voice', upload.single('voice'), (req, res) => {
+router.post('/upload/voice', upload.single('voice'), validateFileUpload(['audio/mpeg', 'audio/wav', 'audio/ogg']), (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
     res.json({
       fileUrl: `/uploads/voice/${req.file.filename}`,
       fileName: req.file.originalname
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
@@ -114,7 +105,7 @@ router.get('/messages', async (req, res) => {
       hasMore: messages.length === limit
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
@@ -128,7 +119,7 @@ router.get('/pinned', async (req, res) => {
 
     res.json(pinnedMessages);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 

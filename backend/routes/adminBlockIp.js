@@ -3,6 +3,8 @@ const express = require('express');
 const BlockedIP = require('../models/BlockedIP');
 const adminAuth = require('../middleware/adminAuth');
 const router = express.Router();
+const { validateInput } = require('../middleware/auth');
+const { blockIpSchema } = require('../utils/validationSchemas');
 
 // Get all blocked IPs
 router.get('/blocked-ips', adminAuth, async (req, res) => {
@@ -11,18 +13,25 @@ router.get('/blocked-ips', adminAuth, async (req, res) => {
 });
 
 // Block an IP
-router.post('/block-ip', adminAuth, async (req, res) => {
-  const { ip, reason } = req.body;
-  if (!ip) return res.status(400).json({ error: 'IP is required' });
-  await BlockedIP.updateOne({ ip }, { ip, reason }, { upsert: true });
-  res.json({ message: 'IP blocked' });
+router.post('/block-ip', adminAuth, validateInput(blockIpSchema), async (req, res, next) => {
+  try {
+    const { ip, reason } = req.body;
+    await BlockedIP.updateOne({ ip }, { ip, reason }, { upsert: true });
+    res.json({ message: 'IP blocked' });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Unblock an IP
-router.delete('/block-ip/:ip', adminAuth, async (req, res) => {
-  const { ip } = req.params;
-  await BlockedIP.deleteOne({ ip });
-  res.json({ message: 'IP unblocked' });
+router.delete('/block-ip/:ip', adminAuth, async (req, res, next) => {
+  try {
+    const { ip } = req.params;
+    await BlockedIP.deleteOne({ ip });
+    res.json({ message: 'IP unblocked' });
+  } catch (error) {
+    next(error);
+  }
 });
 
 module.exports = router;

@@ -13,35 +13,35 @@ exports.sendMessage = async (req, res) => {
 		await message.save();
 		res.status(201).json(message);
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };
 
 exports.uploadImage = (req, res) => {
 	try {
 		if (!req.file) {
-			return res.status(400).json({ error: 'No file uploaded' });
+			throw new Error('No file uploaded', 400);
 		}
 		res.json({
-			fileUrl: `/uploads/images/${req.file.filename}`,
+			imageUrl: `/uploads/images/${req.file.filename}`,
 			fileName: req.file.originalname
 		});
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };
 
 exports.uploadVoice = (req, res) => {
 	try {
 		if (!req.file) {
-			return res.status(400).json({ error: 'No file uploaded' });
+			throw new Error('No file uploaded', 400);
 		}
 		res.json({
-			fileUrl: `/uploads/voice/${req.file.filename}`,
+			voiceUrl: `/uploads/voice/${req.file.filename}`,
 			fileName: req.file.originalname
 		});
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };
 
@@ -60,7 +60,7 @@ exports.getMessages = async (req, res) => {
 			hasMore: messages.length === limit
 		});
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };
 
@@ -72,6 +72,6 @@ exports.getPinnedMessages = async (req, res) => {
 			.limit(10);
 		res.json(pinnedMessages);
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };

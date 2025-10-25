@@ -6,21 +6,13 @@ const jwt = require('jsonwebtoken');
 exports.login = async (req, res) => {
 	try {
 		const { username, password } = req.body;
-		let admin = await AdminUser.findOne({ username });
+		const admin = await AdminUser.findOne({ username });
 		if (!admin) {
-			if (username === process.env.ADMIN_USERNAME) {
-				admin = new AdminUser({
-					username: process.env.ADMIN_USERNAME,
-					password: process.env.ADMIN_PASSWORD
-				});
-				await admin.save();
-			} else {
-				return res.status(401).json({ error: 'Invalid credentials' });
-			}
+			throw new Error('Invalid credentials', 401);
 		}
 		const isValid = await admin.comparePassword(password);
 		if (!isValid) {
-			return res.status(401).json({ error: 'Invalid credentials' });
+			throw new Error('Invalid credentials', 401);
 		}
 		admin.lastLogin = new Date();
 		await admin.save();
@@ -38,7 +30,7 @@ exports.login = async (req, res) => {
 			}
 		});
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };
 
@@ -56,7 +48,7 @@ exports.getStats = async (req, res) => {
 		};
 		res.json(stats);
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };
 
@@ -67,30 +59,30 @@ exports.getUsers = async (req, res) => {
 			.sort({ joinedAt: -1 });
 		res.json(users);
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };
 
 exports.banUser = async (req, res) => {
 	try {
 		const user = await User.findById(req.params.id);
-		if (!user) return res.status(404).json({ error: 'User not found' });
+		if (!user) throw new Error('User not found', 404);
 		user.isBanned = !user.isBanned;
 		await user.save();
 		res.json({ success: true, isBanned: user.isBanned });
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };
 
 exports.pinMessage = async (req, res) => {
 	try {
 		const message = await Message.findById(req.params.id);
-		if (!message) return res.status(404).json({ error: 'Message not found' });
+		if (!message) throw new Error('Message not found', 404);
 		message.isPinned = !message.isPinned;
 		await message.save();
 		res.json({ success: true, isPinned: message.isPinned });
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		next(error);
 	}
 };

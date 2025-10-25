@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const logger = require('./logger');
 
 const IMAGE_DIR = path.join(__dirname, '../uploads/images');
 const VOICE_DIR = path.join(__dirname, '../uploads/voice');
@@ -7,16 +8,16 @@ const VOICE_DIR = path.join(__dirname, '../uploads/voice');
 function cleanupOldFiles(dir, maxAgeHours = 24) {
 	const now = Date.now();
 	fs.readdir(dir, (err, files) => {
-		if (err) return console.error(`Error reading ${dir}:`, err);
+		if (err) return logger.error(`Error reading ${dir}:`, err);
 		files.forEach(file => {
 			const filePath = path.join(dir, file);
 			fs.stat(filePath, (err, stats) => {
-				if (err) return console.error(`Error stating ${filePath}:`, err);
+				if (err) return logger.error(`Error stating ${filePath}:`, err);
 				const ageHours = (now - stats.mtimeMs) / (1000 * 60 * 60);
 				if (ageHours > maxAgeHours) {
 					fs.unlink(filePath, err => {
-						if (err) console.error(`Error deleting ${filePath}:`, err);
-						else console.log(`Deleted old file: ${filePath}`);
+						if (err) logger.error(`Error deleting ${filePath}:`, err);
+						else logger.info(`Deleted old file: ${filePath}`);
 					});
 				}
 			});

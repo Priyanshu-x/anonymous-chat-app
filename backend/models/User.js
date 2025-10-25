@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
 	username: { type: String, required: true, unique: true },
-	password: { type: String, required: true },
+	password: { type: String, required: false },
 	avatar: { type: String },
 	joinedAt: { type: Date, default: Date.now },
 	messageCount: { type: Number, default: 0 },
@@ -11,9 +11,13 @@ const UserSchema = new mongoose.Schema({
 	ip: { type: String }
 });
 
+UserSchema.index({ username: 1 });
+UserSchema.index({ ip: 1 });
+
 UserSchema.pre('save', async function (next) {
-	if (!this.isModified('password')) return next();
-	this.password = await bcrypt.hash(this.password, 10);
+	if (this.password && this.isModified('password')) {
+		this.password = await bcrypt.hash(this.password, 10);
+	}
 	next();
 });
 
