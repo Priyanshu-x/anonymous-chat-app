@@ -19,8 +19,9 @@ const Header = ({ onToggleSidebar, onTogglePinned }) => {
         </button>
         
         <div>
+          <img src="/Chattr Logo.png" alt="Chattr Logo" className="h-8 w-8 mr-2" />
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            Anonymous Chat
+            Chattr
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Welcome to the community
