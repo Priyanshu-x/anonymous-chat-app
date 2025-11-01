@@ -1,6 +1,7 @@
-# Anonymous Chat App 🚀
 
-A modern, real-time anonymous chat application with a sleek UI/UX, built with React, Node.js, Socket.io, and MongoDB.
+https://gc-fi37.onrender.com/
+# Chattr 💬✨
+A modern, real-time chat application with a sleek UI/UX, featuring a distinctive C-shaped Pac-Man logo. Built with React, Node.js, Socket.io, and MongoDB.
 
 ## ✨ Features
 
